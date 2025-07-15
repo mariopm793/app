@@ -1,0 +1,12 @@
+fecha,descripcion,tipo,monto,categoria
+2025-06-19,nomina,ingreso,3900.0,
+2025-06-20,gasolina,egreso,500.0,
+2025-06-24,,ingreso,0.0,
+2025-06-25,ventas,ingreso,1000.0,
+2025-06-19,ventas,ingreso,633.0,
+2025-06-24,,ingreso,0.0,
+2025-06-24,ventas,ingreso,650.0,
+2025-06-24,inventario,egreso,650.0,
+2025-05-31,venta,ingreso,3500.0,
+2025-06-26,nomina,ingreso,3900.0,Nómina
+2025-06-26,pagos ,egreso,3900.0,Otros
