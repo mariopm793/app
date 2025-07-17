@@ -13,6 +13,21 @@ from sheets_utils import (
     generar_presupuesto_sugerido
 )
 
+# Función corregida para conectar Google Sheets
+def conectar_google_sheets():
+    from oauth2client.service_account import ServiceAccountCredentials
+    import gspread
+
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+
+    gcp_secrets = dict(st.secrets["gcp"])
+    cred = ServiceAccountCredentials.from_json_keyfile_dict(gcp_secrets, scope)
+    cliente = gspread.authorize(cred)
+    return cliente, cred
+
 st.set_page_config(page_title="Círculo Financiero", layout="wide")
 st.title("💼 Círculo Financiero – Registro y Análisis de Finanzas")
 
@@ -24,11 +39,17 @@ if correo_usuario:
     cliente, cred = conectar_google_sheets()
     registrar_usuario_activo(correo_usuario, cliente)
     hoja = obtener_hoja_unica(cliente)
-    df_usuario = cargar_datos_usuario(hoja, correo_usuario)
+
+    # Cargar datos al inicio o usar session_state para evitar recarga constante
+    if "df_usuario" not in st.session_state or st.session_state.get("usuario_actual") != correo_usuario:
+        st.session_state.df_usuario = cargar_datos_usuario(hoja, correo_usuario)
+        st.session_state.usuario_actual = correo_usuario
+
+    df_usuario = st.session_state.df_usuario
 
     CATEGORIAS = {
         "Ingreso": ["Ventas", "Nómina", "Préstamos", "Intereses", "Otros"],
-        "Egreso": ["Mercancías", "Gastos generales", "Gastos financieros", "Gastos personales", "combustibles","Otros"]
+        "Egreso": ["Mercancías", "Gastos generales", "Gastos financieros", "Gastos personales", "Combustibles", "Otros"]
     }
 
     tipo = st.selectbox("Tipo de Movimiento", ["Ingreso", "Egreso"])
@@ -51,6 +72,7 @@ if correo_usuario:
             }
             df_usuario = pd.concat([df_usuario, pd.DataFrame([nuevo])], ignore_index=True)
             guardar_datos_usuario(hoja, df_usuario)
+            st.session_state.df_usuario = df_usuario  # actualizar en session_state
             st.success("✅ Movimiento registrado y guardado en tu Google Sheet")
 
     if not df_usuario.empty:
@@ -63,6 +85,7 @@ if correo_usuario:
         if st.button("Eliminar fila"):
             df_usuario = df_usuario.drop(index=index_borrar).reset_index(drop=True)
             guardar_datos_usuario(hoja, df_usuario)
+            st.session_state.df_usuario = df_usuario  # actualizar en session_state
             st.success(f"✅ Fila {index_borrar} eliminada correctamente.")
 
         df_usuario["Mes"] = pd.to_datetime(df_usuario["Fecha"]).dt.to_period("M").astype(str)
@@ -130,9 +153,8 @@ if correo_usuario:
             )
             st.plotly_chart(fig4, use_container_width=True)
 
-        # 🔮 SECCIÓN NUEVA: Asistente con IA
+        # Sección IA
         st.subheader("🤖 Asistente Financiero con IA")
-
         objetivo_usuario = st.text_input("¿Cuál es tu objetivo financiero?", "Ahorrar para un viaje")
 
         colA, colB = st.columns(2)
@@ -148,7 +170,5 @@ if correo_usuario:
                 st.markdown("### 📅 Presupuesto Sugerido")
                 st.write(presupuesto)
 
-    else:
-        st.info("No hay movimientos registrados aún.")
 else:
     st.warning("👤 Por favor, ingresa tu correo para comenzar.")

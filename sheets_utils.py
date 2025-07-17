@@ -1,13 +1,19 @@
+import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
 import google.generativeai as genai
-import streamlit as st
 
+# ✅ CONEXIÓN SEGURA A GOOGLE SHEETS USANDO secrets.toml
 def conectar_google_sheets():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    cred = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    # Convertir el AttrDict a dict
+    gcp_secrets = dict(st.secrets["gcp"])  # convierte a dict simple
+    cred = ServiceAccountCredentials.from_json_keyfile_dict(gcp_secrets, scope)
     cliente = gspread.authorize(cred)
     return cliente, cred
 
@@ -44,7 +50,7 @@ def registrar_usuario_activo(correo_usuario, cliente):
     if correo_usuario not in lista_correos:
         hoja_maestra.append_row([correo_usuario])
 
-# 🧠 NUEVO: funciones IA
+# 🧠 Funciones de IA con Gemini
 def obtener_recomendacion_financiera(df, objetivo_usuario):
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     texto_datos = df.to_csv(index=False)
